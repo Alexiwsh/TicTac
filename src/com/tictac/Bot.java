@@ -6,7 +6,6 @@ import java.util.Random;
 public class Bot {
 	Game Game;
 	boolean allowed = false;
-	int turn = 1;
 	Bot(Game Game){
 		this.Game = Game;
 		constants.initiate();
