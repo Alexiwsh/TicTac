@@ -50,7 +50,6 @@ public class Gui extends JFrame {
 			for(int x = 0; x < com.tictac.constants.FIELD; ++x) {
 				Buttons[y][x] = new GameButton(Game);
 				Buttons[y][x].addActionListener(Ac);
-				Buttons[y][x].setOpaque(false);
 				game_field.add(Buttons[y][x]);
 			}
 		setVisible(true);

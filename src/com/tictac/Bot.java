@@ -10,6 +10,7 @@ public class Bot {
 	Bot(Game Game){
 		this.Game = Game;
 		constants.initiate();
+		
 	}
 	public void heuristic_turn() {
 		allowed = true;
@@ -28,27 +29,30 @@ public class Bot {
 					else if( (y == 0 || y == 2) && (x == 0 || x == 2) ) // corner squares
 						preffered_square[y][x]++;
 				}
-		/*int enow = -1;
-		for(int y = 0; y < FIELD; y++) {
-			//System.out.print("\n");
-			for(int x = 0; x < FIELD; x++) {
-				//System.out.print(Game.Gui.Buttons[y][x].type + " \t");
+		for(int y = 0; y < FIELD; y++)
+			for(int x = 0; x < FIELD; x++)
 				for(int dir = 0; dir < 8; dir++) {
-					if(enow < 0 && Game.Gui.Buttons[y][x].type == CROSSED) {
-						enow = check_conjunction(y, x, dir, CROSSED, max_priority);
+					int conj = 0;
+					int free_square[] = new int[]{-1, -1}; 
+					conj = check_conjunction(y, x, dir, TOED, free_square);
+					if(conj == 2 && free_square[0] != -1) {
+						Game.Gui.Buttons[free_square[0]][free_square[1]].doClick();
+						allowed = false;
+						return;
 					}
-					else if(Game.Gui.Buttons[y][x].type == TOED) {
-						enow = check_conjunction(y, x, dir, TOED, max_priority);
-					}
-					System.out.println(enow);
-					if(max_priority[0] < 0 || enow < 2) {
-						max_priority[0] = -1;
-						max_priority[1] = -1;
+					conj = check_conjunction(y, x, dir, CROSSED, free_square);
+					if(conj == 2 && free_square[0] != -1) {
+						max_priority[0] = free_square[0];
+						max_priority[1] = free_square[1];
 					}
 				}
-			}
-		}*/
-
+		
+		
+		if(max_priority[0] != -1) {
+			Game.Gui.Buttons[max_priority[0]][max_priority[1]].doClick();
+			allowed = false;
+			return;
+		}
 		ArrayList<Integer> collission_y = new ArrayList<Integer>();
 		ArrayList<Integer> collission_x = new ArrayList<Integer>();
 		int max_preffered_square = -1;
@@ -79,24 +83,16 @@ public class Bot {
 	int check_conjunction(int y, int x, int dir, int filter, int[] free){
 		int mod_y = y + modificators[dir][0];
 		int mod_x = x + modificators[dir][1];
-		if(check_field_borders(mod_y, mod_x)) {
-			if(Game.Gui.Buttons[mod_y][mod_x].type == filter)
-				return (1 + check_conjunction(mod_y, mod_x, dir, filter));
-			if(Game.Gui.Buttons[mod_y][mod_x].type == VACANT) {
-				free[0] = mod_y;
-				free[1] = mod_x;
-				return check_conjunction(mod_y, mod_x, dir, filter);
-			}
+		int ret = (Game.Gui.Buttons[y][x].type == filter) ? 1 : 0;
+		if(free != null && Game.Gui.Buttons[y][x].type == VACANT && free[0] == -1) {
+			free[0] = y;
+			free[1] = x;
 		}
-		return 1;
+		if(check_field_borders(mod_y, mod_x))
+			return (ret + check_conjunction(mod_y, mod_x, dir, filter, free));
+		return ret;
 	}
-	int check_conjunction(int y, int x, int dir, int filter){
-		int mod_y = y + modificators[dir][0];
-		int mod_x = x + modificators[dir][1];
-		if(check_field_borders(mod_y, mod_x) && Game.Gui.Buttons[mod_y][mod_x].type == filter)
-				return (1 + check_conjunction(mod_y, mod_x, dir, filter));
-		return 1;
-	}
+	
 	private boolean check_field_borders(int y, int x) {
 		return (y >= 0 && y < FIELD && x >= 0 && x < FIELD);
 	}

@@ -29,7 +29,7 @@ public class Game {
 	public void MakeTurn()
 	{
 		if(cur_turn == constants.CROSSED)
-			Gui.game_turn.setText("Ai Turn");
+			Gui.game_turn.setText("Enemy Turn");
 		else
 			Gui.game_turn.setText("Your Turn");
 		int winner = checkVictory();
@@ -47,10 +47,10 @@ public class Game {
 			for(int x = 0; x < constants.FIELD; ++x)
 				for(int i = 0; i < 8; i++) {
 					if(Gui.Buttons[y][x].type == constants.CROSSED
-							&& Bot.check_conjunction(y, x, i, constants.CROSSED) >= 3)
+							&& Bot.check_conjunction(y, x, i, constants.CROSSED, null) >= 3)
 						return constants.CROSSED;
 					if(Gui.Buttons[y][x].type == constants.TOED &&
-							Bot.check_conjunction(y, x, i, constants.TOED) >= 3)
+							Bot.check_conjunction(y, x, i, constants.TOED, null) >= 3)
 						return constants.TOED;
 				}
 		return constants.VACANT;
