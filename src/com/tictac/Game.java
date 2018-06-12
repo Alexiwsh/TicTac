@@ -1,68 +1,149 @@
 package com.tictac;
+import static com.tictac.constants.*;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ConnectException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class Game {
 	int score[] = new int[2];
+	int cur_turn = CROSSED;
+	int side;
+	int game_type;
 	Gui Gui;
 	Bot Bot;
-	int cur_turn;
-	Game(){
-		cur_turn = constants.CROSSED;
+	private static Game _Game;
+	Socket socket;
+	ServerSocket server;
+	ObjectOutputStream out;
+	ObjectInputStream in;
+	
+	Game(int game_type, String ip, int port){
+		constants.initiate();
+		this.game_type = game_type;
+		side = (game_type == G_CLIENT ? TOED : CROSSED);
+		System.out.println(game_type == G_CLIENT ? "Client: " : "Server: ");
+		_Game = this;
 		Gui = new Gui(this);
-		Bot = new Bot(this);
-	};
-	public int getCurTurn()
-	{
-		return cur_turn;
-	}
-	public boolean button_with_flag(int y, int x, int flag) {
-		return (Gui.Buttons[y][x].type == flag);
-	}
-	private void ChangePlayer()
-	{
-		if(cur_turn == constants.CROSSED) {
-			cur_turn = constants.TOED;
-			Bot.heuristic_turn();
+		if(game_type == G_BOT) {
+			Bot = new Bot(this);
+			Gui.EnableButtons(false);
 		}
-		else
-			cur_turn = constants.CROSSED;
+		else {
+			Gui.Restart.setEnabled(false);
+			Gui.game_turn.setText("Waiting for connection...");
+			Thread T = new Thread(new Runnable(){public void run(){InitiateConnection(ip, port);}});
+			T.start();
+			}
+	};
+	private void InitiateConnection(String ip, int port) {
+		try {
+			if(game_type == G_SERVER) {
+				server = new ServerSocket(port);
+				socket = server.accept();
+			}
+			else
+				for(int i = 0; i < 10; i++)
+					try {
+						socket = new Socket(ip, port);
+						break;}
+					catch(ConnectException e1) {
+						Thread.sleep(1000);
+						continue;
+					}
+			out = new ObjectOutputStream(socket.getOutputStream());
+			in = new ObjectInputStream(socket.getInputStream());
+			Gui.EnableButtons(false);
+			Gui.game_turn.setText((side == CROSSED ? "Your" : "Enemy") + " Turn");
+			Gui.Restart.setEnabled(true);
+		    Thread T = new MessageHandler(socket, in);
+	        T.join();
+			
+		} catch(IOException | InterruptedException  e){
+			e.printStackTrace();
+			System.exit(-1);
+			}
 	}
-	public void MakeTurn()
+	public void MakeTurn(GameButton G)
 	{
-		if(cur_turn == constants.CROSSED)
-			Gui.game_turn.setText("Enemy Turn");
-		else
-			Gui.game_turn.setText("Your Turn");
 		int winner = checkVictory();
 		if(winner > 0)
 		{
-			score[winner == constants.CROSSED ? 0 : 1]++;
+			score[winner == CROSSED ? 0 : 1]++;
 			Gui.game_score.setText("Score: " + score[0] + "/" + score[1]);
-			DisableButtons();
+			Gui.DisableButtons(true);
+		}
+		ChangePlayer(G, winner);
+	}
+	private void ChangePlayer(GameButton G, int winner)
+	{
+		if(cur_turn == CROSSED) {
+			cur_turn = TOED;
+			if(game_type == G_BOT && winner <= 0)
+				Bot.heuristic_turn();
 		}
 		else
-			ChangePlayer();
-	}
-	private byte checkVictory() {
-		for(int y = 0; y < constants.FIELD; ++y)
-			for(int x = 0; x < constants.FIELD; ++x)
-				for(int i = 0; i < 8; i++) {
-					if(Gui.Buttons[y][x].type == constants.CROSSED
-							&& Bot.check_conjunction(y, x, i, constants.CROSSED, null) >= 3)
-						return constants.CROSSED;
-					if(Gui.Buttons[y][x].type == constants.TOED &&
-							Bot.check_conjunction(y, x, i, constants.TOED, null) >= 3)
-						return constants.TOED;
+			cur_turn = CROSSED;
+		if(cur_turn == side)
+			Gui.game_turn.setText("Your Turn");
+		else {
+			Gui.game_turn.setText("Enemy Turn");
+			if(G != null && game_type != G_BOT)
+				try {
+					out.writeObject(new TapeButtonMessage(G));
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-		return constants.VACANT;
+		}
+	}
+	public void TapeButton(GameButton G, boolean is_player) {
+		G.setType(cur_turn);
+		G.setEnabled(false);
+		MakeTurn(is_player ? G : null);
+	}
+	public void TapeButton(int y, int x, boolean is_player) {
+		TapeButton(Gui.Buttons[y][x], is_player);
+	}
+	private int checkVictory() {
+		for(int y = 0; y < FIELD; ++y)
+			for(int x = 0; x < FIELD; ++x)
+				for(int i = 0; i < 8; i++) {
+					if(Gui.Buttons[y][x].type == CROSSED
+							&& check_conjunction(y, x, i, CROSSED, null) >= 3)
+						return CROSSED;
+					if(Gui.Buttons[y][x].type == TOED &&
+							check_conjunction(y, x, i, TOED, null) >= 3)
+						return TOED;
+				}
+		return VACANT;
+	}
+	int check_conjunction(int y, int x, int dir, int filter, int[] free){
+		int mod_y = y + modificators[dir][0];
+		int mod_x = x + modificators[dir][1];
+		int ret = (Gui.Buttons[y][x].type == filter) ? 1 : 0;
+		if(free != null && Gui.Buttons[y][x].type == VACANT && free[0] == -1) {
+			free[0] = y;
+			free[1] = x;
+		}
+		if(check_field_borders(mod_y, mod_x))
+			return (ret + check_conjunction(mod_y, mod_x, dir, filter, free));
+		return ret;
 	}
 	
-	private void DisableButtons()
+	private boolean check_field_borders(int y, int x) {
+		return (y >= 0 && y < FIELD && x >= 0 && x < FIELD);
+	}
+	static public Game getGame() {
+		if(_Game == null)
+			throw new NullPointerException("The Method getGame() that returns Game was called before initiating Game");
+		return _Game;
+	}
+	public int getCurTurn()
 	{
-		for(int y = 0; y < com.tictac.constants.FIELD; ++y)
-			for(GameButton G : Gui.Buttons[y]){
-				G.setEnabled(false);
-			}
-		Gui.game_turn.setText("--");
+		return cur_turn;
 	}
 	
 }

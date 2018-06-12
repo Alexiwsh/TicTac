@@ -5,18 +5,13 @@ import javax.swing.JButton;
 
 @SuppressWarnings("serial")
 public class GameButton extends JButton {
-	private Game Game;
 	public int type = constants.VACANT;
 	private static Font button_font =  new Font("Verdana", Font.BOLD, 100);
-	GameButton(Game Game){
+	GameButton(FieldAction Ac){
 		super();
-		this.Game = Game;
 		setContentAreaFilled(false);
 		this.setFont(button_font);
-	}
-	public Game getGame()
-	{
-		return Game;
+		addActionListener(Ac);
 	}
 	public void setType(int vacant) {
 		this.type = vacant;

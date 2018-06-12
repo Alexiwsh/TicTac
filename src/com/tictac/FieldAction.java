@@ -6,12 +6,13 @@ import java.awt.event.ActionListener;
 public class FieldAction implements ActionListener  {
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		GameButton btn = (GameButton) e.getSource();
-		if(btn.getGame().cur_turn == constants.TOED && !btn.getGame().Bot.allowed)
+		Game G = com.tictac.Game.getGame();
+		if(G.game_type == constants.G_BOT && G.cur_turn == constants.TOED)
 			return;
-		btn.setType(btn.getGame().getCurTurn());
-		btn.setEnabled(false);
-		btn.getGame().MakeTurn();
+		if(G.side != G.cur_turn)
+			return;
+		GameButton btn = (GameButton) e.getSource();
+		G.TapeButton(btn, true);
 	}
 	
 }

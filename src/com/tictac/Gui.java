@@ -1,6 +1,11 @@
 package com.tictac;
+import static com.tictac.constants.FIELD;
+import static com.tictac.constants.VACANT;
+
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
+
 import javax.swing.*;
 
 public class Gui extends JFrame {
@@ -8,9 +13,9 @@ public class Gui extends JFrame {
 	public GameButton Buttons[][] = new GameButton[com.tictac.constants.FIELD][com.tictac.constants.FIELD];
 	private JPanel game_field = new JPanel();
 	private JPanel score_turn_field = new JPanel();
-	public LabelStat game_score = new LabelStat("Score: 0/0");
-	public LabelStat game_turn = new LabelStat("--");
-	private JButton Restart = new JButton("Restart");
+	public JLabel game_score = new JLabel("Score: 0/0");
+	public JLabel game_turn = new JLabel("--");
+	public JButton Restart = new JButton("Restart");
 	Gui(Game Game)
 	{
 		super("Tic-Tac-Toe");
@@ -24,7 +29,16 @@ public class Gui extends JFrame {
 			public void windowClosing(WindowEvent e) {
 		    int res = JOptionPane.showConfirmDialog(null, "Выйти из программы?");
 		    if (res == JOptionPane.YES_OPTION)
-		         System.exit(0);
+		    	try {
+					Game.in.close();
+			    	Game.out.close();
+			    	Game.socket.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+		    	finally {
+		    	System.exit(0);
+		    	}
 		    }
 		});
 		
@@ -34,13 +48,13 @@ public class Gui extends JFrame {
 		score_turn_field.add(game_turn);
 		Restart.addActionListener(new ActionListener(){
 					public void actionPerformed(ActionEvent e) {
-						for(int y = 0; y < com.tictac.constants.FIELD; ++y)
-							for(GameButton G : Buttons[y]){
-							G.setEnabled(true);
-							G.setType(com.tictac.constants.VACANT);
-							Game.cur_turn = constants.CROSSED;
-						}
+						if(Game.socket != null)
+							try {
+								Game.out.writeObject(new RestartMessage());
+							} catch (IOException e1){e1.printStackTrace();}
+						EnableButtons(true);
 						game_turn.setText("--");
+						Game.cur_turn = constants.CROSSED;
 				}});
 		lp.add(score_turn_field, BorderLayout.NORTH);
 		lp.add(Restart, BorderLayout.SOUTH);
@@ -48,9 +62,29 @@ public class Gui extends JFrame {
 		FieldAction Ac = new FieldAction();
 		for(int y = 0; y < com.tictac.constants.FIELD; ++y)
 			for(int x = 0; x < com.tictac.constants.FIELD; ++x) {
-				Buttons[y][x] = new GameButton(Game);
-				Buttons[y][x].addActionListener(Ac);
+				Buttons[y][x] = new GameButton(Ac);
 				game_field.add(Buttons[y][x]);
 			}
+		DisableButtons(false);
 		setVisible(true);
-	}}
+	}
+	
+	void DisableButtons(boolean iswin)
+	{
+		for(int y = 0; y < FIELD; ++y)
+			for(GameButton G : Buttons[y])
+				G.setEnabled(false);
+		if(iswin)
+			game_turn.setText("--");
+	}
+	void EnableButtons(boolean isrestart) {
+		for(int y = 0; y < FIELD; ++y)
+			for(GameButton G : Buttons[y]) {
+				G.setEnabled(true);
+				if(isrestart) {
+					G.setType(VACANT);
+					game_turn.setText("First Turn");
+				}
+			}
+	}
+}

@@ -1,13 +1,9 @@
 package com.tictac;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
 import javax.swing.*;
-
-import com.net.Message;
 public class PreferencesDialog extends JFrame {
 	private static final long serialVersionUID = 8714157403139616958L;
 	private JButton start = new JButton("Start");
@@ -16,6 +12,7 @@ public class PreferencesDialog extends JFrame {
 	private JLabel ip_tooltip = new JLabel("Ip:");
 	private JLabel port_tooltip = new JLabel("Port:");
 	private ButtonGroup Check_group = new ButtonGroup();
+	private int type = -1;
 	PreferencesDialog(){
 		super("Preferences");
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -56,14 +53,17 @@ public class PreferencesDialog extends JFrame {
 						try {
 							ip_field.setText(InetAddress.getLocalHost().getHostAddress());}
 						catch (UnknownHostException e1) {e1.printStackTrace();}
+						type = constants.G_SERVER;
 						break;
 					case "Client":
 						states[0] = true;
 						states[1] = true;
+						type = constants.G_CLIENT;
 						break;
 					case "Bot":
 						states[0] = false;
 						states[1] = false;
+						type = constants.G_BOT;
 						break;
 					}
 					ip_field.setEnabled(states[0]);
@@ -74,11 +74,22 @@ public class PreferencesDialog extends JFrame {
 			}}
         start.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
+				if(type == -1)
+					return;
 				JButton J = (JButton)e.getSource();
 				PreferencesDialog Master = (PreferencesDialog)J.getParent().getParent().getParent().getParent(); // i know
-				new Game();
+				String ip = ip_field.getText();
+				int port = 0;
+				try {
+				port = Integer.parseInt(port_field.getText());
+				}catch(NumberFormatException e1) {
+					port = 8189;
+				}
+				finally {
+				new Game(type, ip.length() > 1 ? ip : null, port);
 				Master.setVisible(false);
 				Master.dispose();
+				}
 			}});
         CheckListener C_L = new CheckListener();
         String[] names = { "Server", "Client", "Bot" };

@@ -3,6 +3,7 @@ package com.tictac;
 public final class constants {
 	public static final int VACANT = 0, CROSSED = 1, TOED = 2, FIELD = 3;
 	public static final int NORTH = 0, SOUTH = 1, WEST = 2, EAST = 3, NORTH_WEST = 4, NORTH_EAST = 5, SOUTH_EAST = 6, SOUTH_WEST = 7;
+	public static final int G_BOT = 0, G_CLIENT = 1, G_SERVER = 2;
 	public static final int modificators[][] = new int[8][2];
 	private static boolean isinit = false;
 	private constants() {};
